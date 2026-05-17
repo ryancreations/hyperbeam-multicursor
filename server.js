@@ -34,7 +34,7 @@ app.get("/computer", async (req, res) => {
     "https://engine.hyperbeam.com/v0/vm",
     hbConfig,
     {
-      headers: { Authorization: `Bearer ${process.env.HB_API_KEY}` },
+      headers: { Authorization: `Bearer ${process.env.sk_live_5ZocUZC8XeRmew_piAVWJR6pCeyiZwUWUdEFiDYGF-I}` },
     }
   );
   computer = resp.data;
