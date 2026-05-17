@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hyperbeam multicursor example</title>
+    <style>
+      #hb-large-container {
+        width: 1280px;
+        height: 720px;
+      }
+
+      #hb-mini-container {
+        /* 16/9 aspect-ratio */
+        width: 500px;
+        height: 281px;
+        background-color: black;
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1;
+        border: 1px solid black;
+      }
+
+      .cursor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        pointer-events: none;
+        z-index: 2;
+        transition: opacity 1s ease;
+      }
+
+      .icon {
+        width: 32px;
+        height: 32px;
+        translate: -8px -8px;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div>
+      <button id="cursor-events-toggle">Stop sending cursor events</button>
+    </div>
+    <div id="hb-mini-container"></div>
+    <div id="hb-large-container"></div>
+    <div class="cursor hidden">
+      <svg
+        class="icon"
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M14.3331 24.4662C14.4454 24.758 14.8616 24.7486 14.9605 24.4519L17.3333 17.3333L24.4519 14.9605C24.7486 14.8616 24.758 14.4454 24.4662 14.3331L8.70001 8.26923C8.43043 8.16555 8.16555 8.43043 8.26923 8.70001L14.3331 24.4662Z"
+          fill="red"
+        />
+        <path
+          d="M14.3331 24.4662C14.4454 24.758 14.8616 24.7486 14.9605 24.4519L17.3333 17.3333L24.4519 14.9605C24.7486 14.8616 24.758 14.4454 24.4662 14.3331L8.70001 8.26923C8.43043 8.16555 8.16555 8.43043 8.26923 8.70001L14.3331 24.4662Z"
+          stroke="white"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </div>
+    <script type="module">
+      import Hyperbeam from "https://unpkg.com/@hyperbeam/web@latest/dist/index.js";
+
+      const cursorNode = document.querySelector(".cursor");
+      const cursorEventsToggle = document.getElementById(
+        "cursor-events-toggle"
+      );
+      const largeContainer = document.getElementById("hb-large-container");
+      const miniContainer = document.getElementById("hb-mini-container");
+
+      async function main() {
+        const resp = await fetch("/computer");
+        const data = await resp.json();
+        loadHyperbeam(largeContainer, data.embed_url);
+        loadHyperbeam(miniContainer, data.embed_url);
+      }
+
+      main();
+
+      async function loadHyperbeam(container, embedUrl) {
+        const rect = container.getBoundingClientRect();
+        const cursors = new Map();
+        let cursorOn = true;
+
+        cursorEventsToggle.addEventListener("click", () => {
+          if (cursorOn) {
+            cursorEventsToggle.innerText = "Start sending cursor events";
+            disableInput(container);
+            cursorOn = false;
+          } else {
+            cursorEventsToggle.innerText = "Stop sending cursor events";
+            enableInput(container);
+            cursorOn = true;
+          }
+        });
+
+        const hb = await Hyperbeam(container, embedUrl, {
+          onCursor({ clientX, clientY, userId }) {
+            if (!cursors.has(userId)) {
+              newCursor(userId, cursors);
+            }
+            const updateCursor = cursors.get(userId);
+            updateCursor([clientX, clientY]);
+          },
+        });
+      }
+
+      function newCursor(userId, cursors) {
+        const elm = cursorNode.cloneNode(true);
+        elm.classList.remove("hidden");
+        document.body.appendChild(elm);
+
+        const onCloseTimeout = () => {
+          cursors.delete(userId);
+          elm.remove();
+        };
+
+        const onFadeTimeout = () => {
+          elm.style.opacity = 0;
+        };
+
+        let closeTimeout = setTimeout(onCloseTimeout, 9000);
+        let fadeTimeout = setTimeout(onFadeTimeout, 5000);
+
+        const update = (p) => {
+          elm.style.opacity = 1;
+          elm.style.setProperty("transform", `translate(${p[0]}px, ${p[1]}px)`);
+          clearTimeout(closeTimeout);
+          clearTimeout(fadeTimeout);
+          closeTimeout = setTimeout(onCloseTimeout, 9000);
+          fadeTimeout = setTimeout(onFadeTimeout, 5000);
+        };
+
+        cursors.set(userId, update);
+      }
+
+      function cancelInput(e) {
+        e.stopPropagation();
+      }
+
+      function disableInput(div) {
+        div.addEventListener("mousemove", cancelInput, true);
+        div.addEventListener("mousedown", cancelInput, true);
+        div.addEventListener("mouseup", cancelInput, true);
+        const vid = div.shadowRoot.getElementById("vid");
+        if (vid) {
+          vid.style.cursor = null;
+        }
+      }
+
+      function enableInput(div) {
+        div.removeEventListener("mousemove", cancelInput, true);
+        div.removeEventListener("mousedown", cancelInput, true);
+        div.removeEventListener("mouseup", cancelInput, true);
+      }
+    </script>
+  </body>
+</html>
