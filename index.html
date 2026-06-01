@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hyperbeam Multi-Cursor</title>
   <style>
-    body { margin:0; background:#111; color:white; font-family:sans-serif; }
-    #container { width:100vw; height:100vh; background:black; }
+    body { margin:0; padding:0; background:#111; overflow:hidden; }
+    #container { width:100vw; height:100vh; background:#000; }
     .cursor {
       position: absolute;
-      font-size: 28px;
+      font-size: 32px;
       pointer-events: none;
       z-index: 10000;
+      text-shadow: 0 0 10px black;
     }
   </style>
 </head>
@@ -22,18 +23,19 @@
     import Hyperbeam from "https://unpkg.com/@hyperbeam/web@latest/dist/index.js";
 
     const container = document.getElementById("container");
-    
-    // ←←← CHANGE THIS LINE
-    const embedUrl = "https://YOUR-EMBED-URL.hyperbeam.com/xxxxxxxxxxxx";
 
-    async function start() {
+    // ←←← PASTE YOUR REAL EMBED URL HERE
+    const embedUrl = "https://hyperbeam.com/app/room/kesm16zhQ-yFhYYRsBLxhA";
+
+    async function main() {
       try {
         await Hyperbeam(container, embedUrl, {
+          startUrl: "https://google.com",
           onCursor({ clientX, clientY, userId, color }) {
-            let cursor = document.getElementById("c" + userId);
+            let cursor = document.getElementById("c-" + userId);
             if (!cursor) {
               cursor = document.createElement("div");
-              cursor.id = "c" + userId;
+              cursor.id = "c-" + userId;
               cursor.className = "cursor";
               cursor.textContent = "👆";
               document.body.appendChild(cursor);
@@ -43,11 +45,12 @@
             if (color) cursor.style.color = color;
           }
         });
-      } catch(e) {
-        alert("Error: " + e.message);
+      } catch (err) {
+        container.innerHTML = `<p style="color:red;padding:40px;">Error: ${err.message}</p>`;
       }
     }
-    start();
+
+    main();
   </script>
 </body>
 </html>
